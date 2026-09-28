@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from application.api.main import app
 from application.database.engine import engine
 from application.database.models import OrderRecord
+from application.queue.redis_queue import RedisQueue
 
 
 @pytest.fixture(autouse=True)
@@ -11,6 +12,8 @@ def clean_orders():
     OrderRecord.__table__.delete().compile(engine)
     with engine.begin() as connection:
         connection.execute(OrderRecord.__table__.delete())
+
+    RedisQueue().client.delete("order_events")
 
 
 client = TestClient(app)
@@ -34,7 +37,7 @@ def test_version():
     response = client.get("/version")
 
     assert response.status_code == 200
-    assert response.json() == {"version": "0.2.0"}
+    assert response.json() == {"version": "0.3.0"}
 
 
 def test_create_order():

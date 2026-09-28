@@ -1,14 +1,17 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from application.queue.redis_queue import RedisQueue
 from application.services.orders import OrderService
+
 
 app = FastAPI(
     title="Production Reliability Engineering",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 order_service = OrderService()
+event_queue = RedisQueue()
 
 
 class CreateOrderRequest(BaseModel):
@@ -44,6 +47,17 @@ def create_order(request: CreateOrderRequest):
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    event_queue.enqueue(
+        "order_events",
+        {
+            "event": "order_created",
+            "order_id": order.order_id,
+            "customer_id": order.customer_id,
+            "amount": order.amount,
+            "currency": order.currency,
+        },
+    )
 
     return {
         "order_id": order.order_id,
