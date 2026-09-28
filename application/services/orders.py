@@ -1,19 +1,12 @@
-from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
-
-@dataclass
-class Order:
-    order_id: str
-    customer_id: str
-    amount: float
-    currency: str
-    status: str = "created"
+from application.common.orders import Order
+from application.database.orders import OrderRepository
 
 
 class OrderService:
-    def __init__(self):
-        self._orders = {}
+    def __init__(self, repository: Optional[OrderRepository] = None):
+        self.repository = repository or OrderRepository()
 
     def create_order(
         self,
@@ -22,7 +15,7 @@ class OrderService:
         amount: float,
         currency: str = "USD",
     ) -> Order:
-        if order_id in self._orders:
+        if self.repository.get(order_id) is not None:
             raise ValueError("order already exists")
 
         if amount <= 0:
@@ -35,11 +28,10 @@ class OrderService:
             currency=currency,
         )
 
-        self._orders[order_id] = order
-        return order
+        return self.repository.save(order)
 
     def get_order(self, order_id: str) -> Optional[Order]:
-        return self._orders.get(order_id)
+        return self.repository.get(order_id)
 
-    def list_orders(self):
-        return list(self._orders.values())
+    def list_orders(self) -> List[Order]:
+        return self.repository.list_all()

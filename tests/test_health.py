@@ -1,6 +1,17 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from application.api.main import app
+from application.database.engine import engine
+from application.database.models import OrderRecord
+
+
+@pytest.fixture(autouse=True)
+def clean_orders():
+    OrderRecord.__table__.delete().compile(engine)
+    with engine.begin() as connection:
+        connection.execute(OrderRecord.__table__.delete())
+
 
 client = TestClient(app)
 
@@ -48,10 +59,20 @@ def test_create_order():
 
 
 def test_get_order():
-    response = client.get("/orders/ORD-TEST-001")
+    client.post(
+        "/orders",
+        json={
+            "order_id": "ORD-GET-001",
+            "customer_id": "CUS-GET-001",
+            "amount": 99.99,
+            "currency": "USD",
+        },
+    )
+
+    response = client.get("/orders/ORD-GET-001")
 
     assert response.status_code == 200
-    assert response.json()["order_id"] == "ORD-TEST-001"
+    assert response.json()["order_id"] == "ORD-GET-001"
 
 
 def test_missing_order():
