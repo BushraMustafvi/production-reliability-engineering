@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 from application.queue.redis_queue import RedisQueue
 from application.services.orders import OrderService
@@ -7,11 +9,16 @@ from application.services.orders import OrderService
 
 app = FastAPI(
     title="Production Reliability Engineering",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 order_service = OrderService()
 event_queue = RedisQueue()
+
+orders_created_total = Counter(
+    "orders_created_total",
+    "Total number of successfully created orders",
+)
 
 
 class CreateOrderRequest(BaseModel):
@@ -36,6 +43,14 @@ def version():
     return {"version": app.version}
 
 
+@app.get("/metrics")
+def metrics():
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
+
+
 @app.post("/orders", status_code=201)
 def create_order(request: CreateOrderRequest):
     try:
@@ -58,6 +73,8 @@ def create_order(request: CreateOrderRequest):
             "currency": order.currency,
         },
     )
+
+    orders_created_total.inc()
 
     return {
         "order_id": order.order_id,
