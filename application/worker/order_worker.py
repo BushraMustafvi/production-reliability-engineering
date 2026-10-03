@@ -2,13 +2,13 @@ from application.queue.redis_queue import RedisQueue
 
 
 def process_order_event(event):
-    print("ORDER_EVENT_PROCESSED", event)
+    print("ORDER_EVENT_PROCESSED", event, flush=True)
 
 
 def run_worker():
     queue = RedisQueue()
 
-    print("ORDER_WORKER_STARTED")
+    print("ORDER_WORKER_STARTED", flush=True)
 
     while True:
         event = queue.dequeue("order_events", timeout=5)

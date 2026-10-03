@@ -1,4 +1,36 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: production-reliability-api:0.1.1
+    container_name: reliability-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://reliability:reliability@postgres:5432/reliability
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: production-reliability-api:0.1.1
+    container_name: reliability-worker
+    restart: unless-stopped
+    command: ["python", "-m", "application.worker.order_worker"]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
   postgres:
     image: postgres:16
     container_name: reliability-postgres
