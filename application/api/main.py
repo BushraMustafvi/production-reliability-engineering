@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException
+import time
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 from application.queue.redis_queue import RedisQueue
 from application.services.orders import OrderService
@@ -20,12 +22,47 @@ orders_created_total = Counter(
     "Total number of successfully created orders",
 )
 
+http_requests_total = Counter(
+    "http_requests_total",
+    "Total number of HTTP requests",
+    ["method", "path", "status"],
+)
+
+http_request_duration_seconds = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "path"],
+)
+
 
 class CreateOrderRequest(BaseModel):
     order_id: str
     customer_id: str
     amount: float
     currency: str = "USD"
+
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    if request.url.path == "/metrics":
+        return await call_next(request)
+
+    start = time.perf_counter()
+
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        duration = time.perf_counter() - start
+        http_requests_total.labels(
+            request.method,
+            request.url.path,
+            response.status_code,
+        ).inc()
+        http_request_duration_seconds.labels(
+            request.method,
+            request.url.path,
+        ).observe(duration)
 
 
 @app.get("/health")
