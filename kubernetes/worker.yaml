@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reliability-worker
+  namespace: reliability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reliability-worker
+  template:
+    metadata:
+      labels:
+        app: reliability-worker
+    spec:
+      containers:
+        - name: worker
+          image: production-reliability-api:0.1.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -m
+            - application.worker.order_worker
+          env:
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reliability-config
+                  key: REDIS_URL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

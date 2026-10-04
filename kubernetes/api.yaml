@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reliability-api
+  namespace: reliability
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reliability-api
+  template:
+    metadata:
+      labels:
+        app: reliability-api
+    spec:
+      containers:
+        - name: api
+          image: production-reliability-api:0.1.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://reliability:reliability@postgres:5432/reliability
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: reliability-config
+                  key: REDIS_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reliability-api
+  namespace: reliability
+spec:
+  selector:
+    app: reliability-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

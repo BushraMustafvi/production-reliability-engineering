@@ -1,17 +1,27 @@
 import time
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
+from application.database.init_db import init_db
 from application.queue.redis_queue import RedisQueue
 from application.services.orders import OrderService
+
+
+@asynccontextmanager
+async def lifespan(app):
+    init_db()
+    yield
 
 
 app = FastAPI(
     title="Production Reliability Engineering",
     version="0.4.0",
+    lifespan=lifespan,
 )
 
 order_service = OrderService()
