@@ -5,6 +5,11 @@ metadata:
   namespace: reliability
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: reliability-api
@@ -13,6 +18,13 @@ spec:
       labels:
         app: reliability-api
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: reliability-api
       containers:
         - name: api
           image: production-reliability-api:0.1.1
@@ -52,6 +64,17 @@ spec:
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: reliability-api
+  namespace: reliability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: reliability-api
 ---
 apiVersion: v1
 kind: Service
