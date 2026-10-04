@@ -27,7 +27,7 @@ spec:
               app: reliability-api
       containers:
         - name: api
-          image: production-reliability-api:0.1.1
+          image: production-reliability-api:0.1.2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
