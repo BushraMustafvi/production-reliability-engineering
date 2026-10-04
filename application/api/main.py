@@ -7,6 +7,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
+from application.database.engine import check_database_connection
 from application.database.init_db import init_db
 from application.queue.redis_queue import RedisQueue
 from application.services.orders import OrderService
@@ -82,6 +83,15 @@ def health():
 
 @app.get("/ready")
 def ready():
+    try:
+        check_database_connection()
+        event_queue.check_connection()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="dependencies not ready",
+        ) from exc
+
     return {"status": "ready"}
 
 

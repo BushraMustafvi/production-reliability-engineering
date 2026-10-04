@@ -33,6 +33,36 @@ def test_ready():
     assert response.json() == {"status": "ready"}
 
 
+def test_ready_database_failure(monkeypatch):
+    def fail_database():
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(
+        "application.api.main.check_database_connection",
+        fail_database,
+    )
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "dependencies not ready"}
+
+
+def test_ready_redis_failure(monkeypatch):
+    def fail_redis():
+        raise RuntimeError("redis unavailable")
+
+    monkeypatch.setattr(
+        "application.api.main.event_queue.check_connection",
+        fail_redis,
+    )
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "dependencies not ready"}
+
+
 def test_version():
     response = client.get("/version")
 

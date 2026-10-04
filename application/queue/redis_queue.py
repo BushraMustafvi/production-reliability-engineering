@@ -15,6 +15,9 @@ class RedisQueue:
             decode_responses=True,
         )
 
+    def check_connection(self):
+        return self.client.ping()
+
     def enqueue(self, queue_name, payload):
         self.client.rpush(queue_name, json.dumps(payload))
 
