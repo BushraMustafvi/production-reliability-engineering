@@ -13,6 +13,22 @@ jobs:
   test:
     name: Test application
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: reliability
+          POSTGRES_PASSWORD: reliability
+          POSTGRES_DB: reliability
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U reliability -d reliability"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://reliability:reliability@localhost:5433/reliability
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
